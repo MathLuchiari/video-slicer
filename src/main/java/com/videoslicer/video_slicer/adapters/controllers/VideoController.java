@@ -14,6 +14,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.videoslicer.video_slicer.application.usecases.UploadVideoUseCase;
 import com.videoslicer.video_slicer.application.usecases.SliceVideoUseCase;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Validated
 @RestController
 @RequestMapping("/api/video")
@@ -31,13 +34,31 @@ public class VideoController {
     //     return courseService.list();
     // }
     @PostMapping("/upload")
-    @ResponseStatus( HttpStatus.CREATED )
-    public ResponseEntity<?> upload( @RequestParam MultipartFile file) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<?> upload(@RequestParam MultipartFile file) {
         var result = uploadUseCase.execute(file);
+        
         if (result.success) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("message", result.message, "content", java.util.Map.of("fileName", result.fileName)));
+            Map<String, Object> content = new HashMap<>();
+            content.put("fileName", result.fileName);
+            content.put("videoId", result.videoId.toString());
+            content.put("videoUrl", result.videoUrl);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                Map.of("message", result.message, "content", content)
+            );
         }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("message", result.message));
+        
+        // Determina código de erro apropriado
+        HttpStatus status = result.message.contains("não suportada") || 
+                           result.message.contains("vazio") ||
+                           result.message.contains("excede") 
+                           ? HttpStatus.BAD_REQUEST 
+                           : HttpStatus.INTERNAL_SERVER_ERROR;
+        
+        return ResponseEntity.status(status).body(
+            Map.of("message", result.message)
+        );
     }
 
     @GetMapping("/slice")
