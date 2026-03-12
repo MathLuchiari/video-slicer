@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.SdkSystemSetting;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -18,17 +19,22 @@ public class AwsConfiguration {
     @Value("${aws.region}")
     private String region;
     
-    @Value("${aws.access-key-id:#{null}}")
+    @Value("${aws.accessKeyId:#{null}}")
     private String accessKeyId;
     
-    @Value("${aws.secret-access-key:#{null}}")
+    @Value("${aws.secretAccessKey:#{null}}")
     private String secretAccessKey;
     
     @Bean
     public AwsCredentialsProvider awsCredentialsProvider() {
+        // Desabilita a leitura de arquivos de perfil AWS para evitar erros de parsing
+        System.setProperty("aws.configFile", "");
+        System.setProperty("aws.sharedCredentialsFile", "");
+        
         // Prioriza credenciais explícitas, senão usa DefaultCredentialsProvider
         // que busca em variáveis de ambiente, arquivo de credenciais, etc.
-        if (accessKeyId != null && secretAccessKey != null) {
+        if (accessKeyId != null && secretAccessKey != null && 
+            !accessKeyId.isEmpty() && !secretAccessKey.isEmpty()) {
             return StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(accessKeyId, secretAccessKey)
             );
